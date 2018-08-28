@@ -39,9 +39,13 @@
 - redux saga в качестве замены конечного автомата - кол-во жизней, состояние танка, его реакция на действия пользователя, пауза в игре
 - прикрутить плавную анимацию между игровыми фреймами
   https://greensock.com/tweenlite , пример использования с 3D https://codepen.io/rachsmith/post/beginning-with-3d-webgl-pt-4-animation
+- воспроизвести алгоритм танков описанный в статье на habrahabr
 
 # Links
 
+- [Спрайт старых танчиков](https://github.com/loveyacper/BattleCity/blob/master/BattleCity1990/res/drawable/spirit.png)
+- [Карты и звук старых танчиков](https://github.com/loveyacper/BattleCity/tree/master/BattleCity1990/res/raw)
+- [Тайлы и логика старых танчиков](https://habrahabr.ru/post/142126/)
 - [Interactive 3D Graphics. Udacity Free Course](https://classroom.udacity.com/courses/cs291/lessons/124106593/concepts/1579966470923)
 - [Collection of tutorials by CJ Gammon](http://blog.cjgammon.com/)
 - [Aerotwist tutorials by Paul Lewis](https://aerotwist.com/tutorials/)
