@@ -23,111 +23,119 @@
     <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.10/lodash.min.js" integrity="sha256-/GKyJ0BQJD8c8UYgf7ziBrs/QgcikS7Fv/SaArgBcEI=" crossorigin="anonymous"></script>
     <script type="text/javascript" src="./channels.js"></script>
     <script type="text/javascript" src="./3d_objects.js"></script>
+    <!--<script type="text/javascript" src="./geometry.js"></script>-->
+    <script type="text/javascript" src="./actors/rotating_tank.js"></script>
+    <script type="text/javascript" src="./actors/tank.js"></script>
+    <script type="text/javascript" src="./actors/shots.js"></script>
 
     <script type="text/javascript">
-      async function rotateSampleTank(){
-        let tank = createTank()
-        scene.add( tank );
+      function create3DScene(){
+        let scene = new THREE.Scene();
+        let camera = new THREE.PerspectiveCamera( 75, window.innerWidth/window.innerHeight, 0.1, 1000 );
 
-        while(true){
-          tank.rotation.x += 0.01;
-          tank.rotation.y += 0.05;
-          await animationChannel.promise
-        }
-      }
+        let renderer = new THREE.WebGLRenderer();
+        renderer.setSize( window.innerWidth, window.innerHeight );
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        camera.position.z = 17;
 
-      async function runControlledTank({speed=0.1, onKeyPressed=null, color=0x00ee00, startX=0, startY=0}={}){
-        let tank = createTank({color})
-        scene.add( tank );
+        var light = new THREE.PointLight(0xFFFF00);
+        /* position the light so it shines on the cube (x, y, z) */
+        light.position.set(10, 0, 25);
+        light.castShadow = true;
+        light.shadow.mapSize.width = 1024;
+        light.shadow.mapSize.height = 1024;
+        scene.add(light);
 
-        tank.position.x += startX * speed;
-        tank.position.y += startY * speed;
-
-        if (!onKeyPressed)
-          return
-
-        const onkeydownOldHandler = document.onkeydown
-        document.onkeydown = (event)=>{
-          if (onkeydownOldHandler){
-            onkeydownOldHandler(event)
-          }
-          checkKey(event);
-        }
-
-        let direction = 0;
-        const DIRECTION_TO_MOVEMENT = {
-          0: [-1, 0],
-          1: [0, -1],
-          2: [1, 0],
-          3: [0, 1],
-        }
-
-        function checkKey(e) {
-          e = e || window.event;
-
-          console.log('e.key', e.key)
-          console.log('e.keyCode', e.keyCode)
-
-          let [newDirection, movement] = onKeyPressed(e)
-
-          if (!_.isNull(newDirection)){
-            direction = newDirection
-          }
-
-          tank.rotation.z = direction * Math.PI /2;
-
-          if (!_.isNull(movement)){
-            let [dx, dy] = DIRECTION_TO_MOVEMENT[direction]
-            tank.position.x += dx * speed;
-            tank.position.y += dy * speed;
-          }
-
-          tank.position.x = Math.max(leftX, tank.position.x)
-          tank.position.x = Math.min(rightX, tank.position.x)
-          tank.position.y = Math.max(bottomY, tank.position.y)
-          tank.position.y = Math.min(topY, tank.position.y)
-        }
+        return [renderer, scene, camera]
       }
     </script>
+
+    <script type="text/javascript">
+      async function runGame(){
+        runShots(borders)
+        runShots2(borders)
+
+        let redTank = new Tank({
+          color: 0x990099,
+          speed: 1,
+          startX: 10,
+          startY: 0,
+          borders: borders,
+        })
+        redTank.run()
+
+
+        let yiellowTank = new Tank({
+          color: 0xeeee00,
+          speed: 1,
+          startX: -10,
+          startY: 0,
+          borders: borders,
+        })
+        yiellowTank.run()
+
+        while(true){
+          let event = await window.keydownChannel.promise
+
+          if (event.keyCode == '38') {
+            redTank.channel.push({slug: 'rotate', direction: 'up'})
+          } else if (event.keyCode == '40') {
+            redTank.channel.push({slug: 'rotate', direction: 'down'})
+          } else if (event.keyCode == '37') {
+            redTank.channel.push({slug: 'rotate', direction: 'left'})
+          } else if (event.keyCode == '39') {
+            redTank.channel.push({slug: 'rotate', direction: 'right'})
+          } else if (event.keyCode == '32') {
+            redTank.channel.push({slug: 'move'})
+          }
+
+          if (event.keyCode == '87') {
+            yiellowTank.channel.push({slug: 'rotate', direction: 'up'})
+          }
+          else if (event.keyCode == '83') {
+            yiellowTank.channel.push({slug: 'rotate', direction: 'down'})
+          }
+          else if (event.keyCode == '65') {
+            yiellowTank.channel.push({slug: 'rotate', direction: 'left'})
+          }
+          else if (event.keyCode == '68') {
+            yiellowTank.channel.push({slug: 'rotate', direction: 'right'})
+          }
+          else if (event.keyCode == '192') {
+            yiellowTank.channel.push({slug: 'move'})
+          }
+        }
+
+
+      }
+    </script>
+
     <script>
-      var scene = new THREE.Scene();
-      var camera = new THREE.PerspectiveCamera( 75, window.innerWidth/window.innerHeight, 0.1, 1000 );
-
-      var renderer = new THREE.WebGLRenderer();
-      renderer.setSize( window.innerWidth, window.innerHeight );
-      renderer.shadowMap.enabled = true;
-      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-
+      var [renderer, scene, camera] = create3DScene()
       document.body.appendChild( renderer.domElement );
 
-
-
-
-      var borderMaterial = new THREE.LineBasicMaterial( { color: 0xffffff, linewidth: 2 } );
-      var borderGeometry = new THREE.Geometry();
-      window.leftX = -13;
-      window.rightX = 13;
-      window.topY = 6;
-      window.bottomY = -7;
-      borderGeometry.vertices.push(new THREE.Vector3( leftX, topY, 0) );
-      borderGeometry.vertices.push(new THREE.Vector3( rightX, topY, 0) );
-      borderGeometry.vertices.push(new THREE.Vector3( rightX, bottomY, 0) );
-      borderGeometry.vertices.push(new THREE.Vector3( leftX, bottomY, 0) );
-      borderGeometry.vertices.push(new THREE.Vector3( leftX, topY, 0) );
-      var border = new THREE.Line( borderGeometry, borderMaterial );
-      scene.add( border );
-
-      camera.position.z = 17;
-
-      var light = new THREE.PointLight(0xFFFF00);
-      /* position the light so it shines on the cube (x, y, z) */
-      light.position.set(10, 0, 25);
-      light.castShadow = true;
-      light.shadow.mapSize.width = 1024;
-      light.shadow.mapSize.height = 1024;
-      scene.add(light);
+      var borders = {
+        leftX: -13,
+        rightX: 13,
+        topY: 6,
+        bottomY: -7,
+      }
+      let border3D = createBattleField3D(borders)
+      scene.add(border3D);
 
       window.animationChannel = new Channel(requestAnimationFrame)
+      window.keydownChannel = new Channel()
+
+      document.onkeydown = (event)=>{
+        event = event || window.event;
+
+        console.log('onkeydown key', event.key)
+        console.log('onkeydown keyCode', event.keyCode)
+
+        window.keydownChannel.push(event)
+      }
+
 
       async function render(){
         while(true){
@@ -136,60 +144,9 @@
         }
       }
 
-      // rotateSampleTank()
-
-      runControlledTank({
-        speed: 1,
-        color: 0x990099,
-        startX: 0,
-        startY: 10,
-        onKeyPressed: (event)=>{
-          if (event.keyCode == '38') {
-            return [3, null] // up
-          }
-          else if (event.keyCode == '40') {
-            return [1, null] // down, zero step
-          }
-          else if (event.keyCode == '37') {
-            return [0, null] // left, zero step
-          }
-          else if (event.keyCode == '39') {
-            return [2, null] // right, zero step
-          }
-          else if (event.keyCode == '32') {
-            return [null, 1] // space
-          }
-          return [null, null]
-        }
-      })
-
-
-      runControlledTank({
-        speed: 1,
-        color: 0xeeee00,
-        startX: 0,
-        startY: 10,
-        onKeyPressed: (event)=>{
-          if (event.keyCode == '87') {
-            return [3, null] // w
-          }
-          else if (event.keyCode == '83') {
-            return [1, null] // s, zero step
-          }
-          else if (event.keyCode == '65') {
-            return [0, null] // a, zero step
-          }
-          else if (event.keyCode == '68') {
-            return [2, null] // d, zero step
-          }
-          else if (event.keyCode == '192') {
-            return [null, 1] // `
-          }
-          return [null, null]
-        }
-      })
-
+      // runRotatingTank()
       render()
+      runGame()
     </script>
   </body>
 </html>
