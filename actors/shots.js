@@ -1,45 +1,71 @@
-async function runShots(borders){
+async function runShot({borders, startPosition={x:0, y:0}, direction='right', speed=0.5, filterTanks=()=>true}){
+  borders = borders || bf.borders
   let shot = createShot()
   scene.add(shot);
+
+  let {x,y} = startPosition
+  shot.position.x = x
+  shot.position.y = y
+
+  shot.rotation.z = DIRECTION_TO_RAD[direction]
+
+  const [vx, vy] = DIRECTION_TO_VECTOR[direction]
+  const dx = vx * speed
+  const dy = vy * speed
 
   while(true){
     await animationChannel.promise
 
-    shot.position.x += 0.5
+    shot.position.x += dx
+    shot.position.y += dy
 
-    if (shot.position.x > borders.rightX){
-      shot.position.x = borders.leftX
-      shot.position.y = (+(new Date())) % 12 - 5
+    let isInside = [
+      shot.position.x <= borders.rightX,
+      shot.position.x >= borders.leftX,
+      shot.position.y >= borders.bottomY,
+      shot.position.y <= borders.topY,
+    ]
+
+    if (!_.every(isInside)){
+      scene.remove(shot);
+      return
     }
-    // shot.position.x = Math.max(borders.leftX, shot.position.x)
-    // shot.position.x = Math.min(borders.rightX, shot.position.x)
-    // shot.position.y = Math.max(borders.bottomY, shot.position.y)
-    // shot.position.y = Math.min(borders.topY, shot.position.y)
 
+    let closeTanks = Array.from(bf.getCloseTanks(shot.position))
+    let filteredTanks = _.filter(closeTanks, filterTanks)
+
+    for (let tank of filteredTanks){
+      tank.commands.push({slug: 'blow'})
+    }
+
+    if (filteredTanks.length){
+      scene.remove(shot);
+      return
+    }
   }
 
 }
 
-
-async function runShots2(borders){
-  let shot = createShot()
-  shot.rotation.z = 0.5 * Math.PI
-  scene.add(shot);
+async function runHorizontalShots(borders){
+  const deltaY = borders.topY - borders.bottomY
 
   while(true){
-    await animationChannel.promise
-
-    shot.position.y += 0.5
-
-    if (shot.position.y > borders.topY){
-      shot.position.y = borders.bottomY
-      shot.position.x = (+(new Date())) % 20 - 5
+    let startPosition = {
+      x: borders.leftX,
+      y: (+(new Date())) % deltaY + borders.bottomY,
     }
-    // shot.position.x = Math.max(borders.leftX, shot.position.x)
-    // shot.position.x = Math.min(borders.rightX, shot.position.x)
-    // shot.position.y = Math.max(borders.bottomY, shot.position.y)
-    // shot.position.y = Math.min(borders.topY, shot.position.y)
-
+    await runShot({borders, startPosition, direction: 'right'})
   }
+}
 
+async function runVerticalShots(borders){
+  const deltaX = borders.rightX - borders.leftX
+
+  while(true){
+    let startPosition = {
+      x: (+(new Date())) % deltaX + borders.leftX,
+      y: borders.bottomY,
+    }
+    await runShot({borders, startPosition, direction: 'up'})
+  }
 }

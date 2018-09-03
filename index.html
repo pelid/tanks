@@ -2,44 +2,96 @@
   <head>
     <title>Танчики</title>
     <style>
-      body { margin: 0; }
-      canvas { width: 100%; height: 100% }
+      body {
+        margin: 0;
+        color: white;
+        background-color: black;
+      }
+      canvas {
+        width: auto; height: 100%
+      }
       #info {
-        position: absolute;
-        top: 10px;
-        width: 100%;
+        padding-top: 10px;
         text-align: center;
-        z-index: 100;
-        display:block;
+        display: block;
         color: red;
-        font-weight: bold;
+        font-weight: 500;
         font-size: 30px;
+      }
+      .layout {
+        margin: 10px 50px;
+        display: grid;
+        grid-template-columns: auto 1000px auto;
+        grid-template-rows: 40px auto;
+        height: 100%;
+      }
+      .yellow-lives-counter{
+        float: right;
+        position: relative;
+        top: 50%;
+        font-size: 30px;
+        font-weight: 500;
+        color: yellow;
+      }
+      .red-lives-counter{
+        float: left;
+        position: relative;
+        top: 50%;
+        font-size: 30px;
+        font-weight: 500;
+        color: red;
       }
     </style>
   </head>
   <body>
-    <div id="info">Танчики</div>
+    <div class="layout">
+      <div></div>
+      <div id="info">Танчики</div>
+      <div>
+        <a href="./index.html" style="border: 1px solid white; color: white; text-decoration: none; padding: 5px; display: inline-block;">
+          Заново
+        </a>
+      </div>
+      <div>
+        <div class="yellow-lives-counter">
+          <span class="js-yellow-lives">3</span>&nbsp;❤
+        </div>
+      </div>
+      <div id="canvas-wrapper"></div>
+      <div>
+        <div class="red-lives-counter">
+          <span class="js-red-lives">3</span>&nbsp;❤
+        </div>
+      </div>
+    </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/90/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.10/lodash.min.js" integrity="sha256-/GKyJ0BQJD8c8UYgf7ziBrs/QgcikS7Fv/SaArgBcEI=" crossorigin="anonymous"></script>
     <script type="text/javascript" src="./channels.js"></script>
+    <script type="text/javascript" src="./commands.js"></script>
+    <script type="text/javascript" src="./battlefield.js"></script>
     <script type="text/javascript" src="./3d_objects.js"></script>
     <!--<script type="text/javascript" src="./geometry.js"></script>-->
+    <script type="text/javascript" src="./actors/rc.js"></script>
     <script type="text/javascript" src="./actors/rotating_tank.js"></script>
+    <script type="text/javascript" src="./actors/explosion.js"></script>
     <script type="text/javascript" src="./actors/tank.js"></script>
     <script type="text/javascript" src="./actors/shots.js"></script>
+    <script type="text/javascript" src="./actors/bomb.js"></script>
+    <script type="text/javascript" src="./actors/robo-tank.js"></script>
 
     <script type="text/javascript">
       function create3DScene(){
         let scene = new THREE.Scene();
-        let camera = new THREE.PerspectiveCamera( 75, window.innerWidth/window.innerHeight, 0.1, 1000 );
+        let camera = new THREE.PerspectiveCamera( 85, canvasWrapper.clientWidth / canvasWrapper.clientHeight, 0.1, 1000 );
 
         let renderer = new THREE.WebGLRenderer();
-        renderer.setSize( window.innerWidth, window.innerHeight );
+        renderer.setSize(canvasWrapper.clientWidth, canvasWrapper.clientHeight);
         renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        camera.position.y = 14
         camera.position.z = 17;
 
-        var light = new THREE.PointLight(0xFFFF00);
+        var light = new THREE.PointLight(0xFFFFFF);
         /* position the light so it shines on the cube (x, y, z) */
         light.position.set(10, 0, 25);
         light.castShadow = true;
@@ -53,57 +105,95 @@
 
     <script type="text/javascript">
       async function runGame(){
-        runShots(borders)
-        runShots2(borders)
+
+        // let explosion = new Explosion()
+        // await explosion.run()
+
+        // let bomb = new Bomb()
+        // bomb.run()
+
+        // runVerticalShots(bf.borders)
+        // runHorizontalShots(bf.borders)
+
+        let bomberman = new Bomberman()
+        bomberman.run()
 
         let redTank = new Tank({
-          color: 0x990099,
+          color: 0x990000,
           speed: 1,
-          startX: 10,
-          startY: 0,
-          borders: borders,
+          startX: 9,
+          startY: 1,
+          team: 'players',
         })
         redTank.run()
+        let redLivesEl = document.getElementsByClassName('js-red-lives')[0]
+        setInterval(()=>{
+          redLivesEl.innerHTML = redTank.lifes
+        }, 700)
 
-
-        let yiellowTank = new Tank({
+        let yellowTank = new Tank({
           color: 0xeeee00,
           speed: 1,
-          startX: -10,
-          startY: 0,
-          borders: borders,
+          startX: -9,
+          startY: 1,
+          team: 'players',
         })
-        yiellowTank.run()
+        yellowTank.run()
+        let yellowLivesEl = document.getElementsByClassName('js-yellow-lives')[0]
+        setInterval(()=>{
+          yellowLivesEl.innerHTML = yellowTank.lifes
+        }, 700)
+
+        let roboTank1 = new RoboTank()
+        roboTank1.run({startX: -10})
+
+        let roboTank2 = new RoboTank()
+        roboTank2.run({startX: 0})
+
+        let roboTank3 = new RoboTank()
+        roboTank3.run({startX: 10})
 
         while(true){
           let event = await window.keydownChannel.promise
 
           if (event.keyCode == '38') {
-            redTank.channel.push({slug: 'rotate', direction: 'up'})
+            redTank.commands.push({slug: 'rotate', direction: 'up'})
+            redTank.commands.push({slug: 'move'})
           } else if (event.keyCode == '40') {
-            redTank.channel.push({slug: 'rotate', direction: 'down'})
+            redTank.commands.push({slug: 'rotate', direction: 'down'})
+            redTank.commands.push({slug: 'move'})
           } else if (event.keyCode == '37') {
-            redTank.channel.push({slug: 'rotate', direction: 'left'})
+            redTank.commands.push({slug: 'rotate', direction: 'left'})
+            redTank.commands.push({slug: 'move'})
           } else if (event.keyCode == '39') {
-            redTank.channel.push({slug: 'rotate', direction: 'right'})
-          } else if (event.keyCode == '32') {
-            redTank.channel.push({slug: 'move'})
+            redTank.commands.push({slug: 'rotate', direction: 'right'})
+            redTank.commands.push({slug: 'move'})
+          // } else if (event.keyCode == '32') {
+          //   redTank.commands.push({slug: 'move'})
+          } else if (event.keyCode == '13') { // enter
+            redTank.commands.push({slug: 'fire'})
+          } else if (event.keyCode == '8') { // backspace
+            redTank.commands.push({slug: 'blow'})
           }
 
           if (event.keyCode == '87') {
-            yiellowTank.channel.push({slug: 'rotate', direction: 'up'})
-          }
-          else if (event.keyCode == '83') {
-            yiellowTank.channel.push({slug: 'rotate', direction: 'down'})
-          }
-          else if (event.keyCode == '65') {
-            yiellowTank.channel.push({slug: 'rotate', direction: 'left'})
-          }
-          else if (event.keyCode == '68') {
-            yiellowTank.channel.push({slug: 'rotate', direction: 'right'})
-          }
-          else if (event.keyCode == '192') {
-            yiellowTank.channel.push({slug: 'move'})
+            yellowTank.commands.push({slug: 'rotate', direction: 'up'})
+            yellowTank.commands.push({slug: 'move'})
+          } else if (event.keyCode == '83') {
+            yellowTank.commands.push({slug: 'rotate', direction: 'down'})
+            yellowTank.commands.push({slug: 'move'})
+          } else if (event.keyCode == '65') {
+            yellowTank.commands.push({slug: 'rotate', direction: 'left'})
+            yellowTank.commands.push({slug: 'move'})
+          } else if (event.keyCode == '68') {
+            yellowTank.commands.push({slug: 'rotate', direction: 'right'})
+            yellowTank.commands.push({slug: 'move'})
+          // else if (event.keyCode == '192') {
+          //   yellowTank.commands.push({slug: 'move'})
+          } else if (event.keyCode == '81') {
+            yellowTank.commands.push({slug: 'fire'})
+          } else if (event.keyCode == '32') {
+            yellowTank.commands.push({slug: 'fire'})
           }
         }
 
@@ -112,16 +202,17 @@
     </script>
 
     <script>
+      var canvasWrapper = document.getElementById('canvas-wrapper')
       var [renderer, scene, camera] = create3DScene()
-      document.body.appendChild( renderer.domElement );
+      canvasWrapper.appendChild( renderer.domElement );
 
-      var borders = {
+      var bf = new BattleField({
         leftX: -13,
         rightX: 13,
-        topY: 6,
-        bottomY: -7,
-      }
-      let border3D = createBattleField3D(borders)
+        topY: 28,
+        bottomY: 0,
+      })
+      let border3D = createBattleField3D(bf.borders, padding=[0.8, 0.8, 0.8, 0.8])
       scene.add(border3D);
 
       window.animationChannel = new Channel(requestAnimationFrame)

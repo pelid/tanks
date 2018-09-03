@@ -1,79 +1,57 @@
 
-class Tank{
-  constructor({color, startX=0, startY=0, maxSpeed=1, direction='up', borders}={}){
-    this.direction = direction
+class Tank extends BaseRCWalker{
+  constructor({color, startX=0, startY=0, maxSpeed=1, startDirection='up', borders, lifes=3, fireTimeout=1000, team}={}){
+    super({startX, startY, maxSpeed, startDirection, borders})
+    this.startX = startX
+    this.startY = startY
     this.tank3D = createTank3D({color})
-    Object.assign(this.tank3D.position, {
-      x: startX,
-      y: startY,
-      z: 0,
-    })
-    this.tank3D.rotation.z = this._getZRad(this.direction)
-    this.maxSpeed = maxSpeed
-    this.channel = new Channel()
-    this.borders = borders
-  }
-
-  async _collectCommands(commandsBuffer){
-    while(true){
-      let command = await this.channel.promise;
-      commandsBuffer.push(command)
-    }
-  }
-
-  _getXYDelta(direction, dx, dy){
-    if (direction == 'left'){
-      return [-dx, 0]
-    } else if (direction == 'right'){
-      return [dx, 0]
-    } else if (direction == 'down'){
-      return [0, -dy]
-    } else if (direction == 'up'){
-      return [0, dy]
-    }
-  }
-
-  _getZRad(direction){
-    if (direction == 'left'){
-      return 0
-    } else if (direction == 'right'){
-      return 1 * Math.PI
-    } else if (direction == 'down'){
-      return 0.5 * Math.PI
-    } else if (direction == 'up'){
-      return 1.5 * Math.PI
-    }
-    throw Error(`Unknown direction - ${direction}`)
+    this.lifes = 3
+    this.fireTimeout = fireTimeout
+    this.team = team
   }
 
   async run(){
     scene.add(this.tank3D );
+    bf.tanks.push(this)
 
-    let commandsBuffer = []
-    this._collectCommands(commandsBuffer)
-
+    let canFire = true
     // place on start position
     while(true){
       await animationChannel.promise
 
-      let rotateCommand = _.findLast(commandsBuffer, {slug: 'rotate'})
-      this.direction = rotateCommand && rotateCommand.direction || this.direction
-      this.tank3D.rotation.z = this._getZRad(this.direction)
+      this.handleWalkCommands()
 
-      let moveCommand = _.findLast(commandsBuffer, {slug: 'move'})
-      if (moveCommand){
-        let [dx, dy] = this._getXYDelta(this.direction, this.maxSpeed, this.maxSpeed)
-        this.tank3D.position.x += dx
-        this.tank3D.position.y += dy
+      let blowCommand = this.commands.getLatest('blow')
+      if (blowCommand){
+        let explosion = new Explosion({position: this.center, maxRange: 2})
+        _.remove(bf.tanks, this)
+        scene.remove(this.tank3D)
+        this.lifes -= 1
+        await explosion.run()
+        if (this.lifes <= 0){
+          return
+        }
+        await new Promise(resolve=>setTimeout(resolve, 500))
+        this.center = {x: this.startX, y: this.startY}
+        bf.tanks.push(this)
+        scene.add(this.tank3D)
       }
 
-      this.tank3D.position.x = Math.max(this.borders.leftX, this.tank3D.position.x)
-      this.tank3D.position.x = Math.min(this.borders.rightX, this.tank3D.position.x)
-      this.tank3D.position.y = Math.max(this.borders.bottomY, this.tank3D.position.y)
-      this.tank3D.position.y = Math.min(this.borders.topY, this.tank3D.position.y)
 
+      let fireCommand = this.commands.getLatest('fire')
+      if (fireCommand && canFire){
+        runShot({
+          startPosition: this.tank3D.position,
+          direction: this.direction,
+        })
+        canFire=false
+        setTimeout(()=>canFire=true, this.fireTimeout)
+      }
 
-      _.remove(commandsBuffer, ()=>true)
+      this.commands.flush()
+
+      this.tank3D.rotation.z = DIRECTION_TO_RAD[this.direction]
+      Object.assign(this.tank3D.position, this.center)
     }
   }
 }

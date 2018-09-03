@@ -42,8 +42,15 @@ function createTank3D({color=0x00aa00}={}){
   return tank
 }
 
-function createBattleField3D(borders){
+function createBattleField3D(borders, padding=[0, 0, 0, 0]){
+  let [pTop, pRight, pBottom, pLeft] = padding
+
   let {leftX, rightX, topY, bottomY} = borders
+  leftX -= pLeft
+  rightX += pRight
+  topY += pTop
+  bottomY -= pBottom
+
   let borderMaterial = new THREE.LineBasicMaterial( { color: 0xffffff, linewidth: 2 } );
   let borderGeometry = new THREE.Geometry();
 
@@ -67,4 +74,13 @@ function createShot(){
   shot.castShadow = true;
   shot.receiveShadow = true;
   return shot
+}
+
+function createSphere({position={x:0, y:0, z:0}, color=0xaaaaaa, radius=1}={}){
+  let sphere = new THREE.SphereGeometry(radius, 8, 4, 0, 6.3, 0, Math.PI); // https://threejs.org/docs/#api/geometries/SphereGeometry
+  let sphereMesh = new THREE.Mesh( sphere, new THREE.MeshPhongMaterial({color: color}) );
+  sphereMesh.castShadow = true;
+  sphereMesh.receiveShadow = true;
+  Object.assign(sphereMesh.position, position)
+  return sphereMesh
 }
