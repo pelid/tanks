@@ -10,6 +10,10 @@ class Explosion{
   async run(){
     scene.add(this.explosion3D)
 
+    let explosionSound = new THREE.Audio(window.listener);
+    explosionSound.setVolume(1);
+    explosionSound.setBuffer(SOUND_BUFFERS.explosion);
+    explosionSound.play()
 
     let startTS = (+ new Date())
 

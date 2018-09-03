@@ -14,6 +14,11 @@ class Tank extends BaseRCWalker{
     scene.add(this.tank3D );
     bf.tanks.push(this)
 
+    // create a global audio source
+    let fireSound = new THREE.Audio(window.listener);
+    fireSound.setVolume(1);
+    fireSound.setBuffer(SOUND_BUFFERS.fire);
+
     let canFire = true
     // place on start position
     while(true){
@@ -40,6 +45,8 @@ class Tank extends BaseRCWalker{
 
       let fireCommand = this.commands.getLatest('fire')
       if (fireCommand && canFire){
+        fireSound.play();
+
         runShot({
           startPosition: this.tank3D.position,
           direction: this.direction,

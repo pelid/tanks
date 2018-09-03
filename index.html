@@ -1,5 +1,6 @@
 <html>
   <head>
+    <meta charset="UTF-8">
     <title>Танчики</title>
     <style>
       body {
@@ -105,6 +106,18 @@
 
     <script type="text/javascript">
       async function runGame(){
+
+        // create an AudioListener and add it to the camera
+        window.listener = new THREE.AudioListener();
+        camera.add( listener );
+
+        // load a sound and set it as the Audio object's buffer
+        var audioLoader = new THREE.AudioLoader();
+        window.SOUND_BUFFERS = {
+          fire: await new Promise(resolve => audioLoader.load('sounds/tank_fire.flac', resolve)),
+          explosion: await new Promise(resolve => audioLoader.load('sounds/explosion.ogg', resolve)),
+
+        }
 
         // let explosion = new Explosion()
         // await explosion.run()
